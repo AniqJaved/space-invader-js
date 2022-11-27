@@ -95,7 +95,7 @@ class Projectile {
 
 
 class Invader { 
-    constructor(){ 
+    constructor({ position }){ 
         
         this.velocity = { 
             x: 0, 
@@ -115,8 +115,8 @@ class Invader {
             this.width = image.width * scale
             this.height = image.height * scale
             this.position = { 
-                x: canvas.width / 2 - this.width / 2,  // we are using this.width so the area covered by image itself is also distributed evenly
-                y: canvas.height / 2 
+                x: position.x,  // we are using position which will be giving dynamic value
+                y: position.y 
             } 
         }
     } 
@@ -134,20 +134,68 @@ class Invader {
         c.drawImage(this.image, this.position.x, this.position.y, this.width, this.height)
     }
 
-    update(){
+    update({velocity}){
         if(this.image){  //Runs only when the image is loaded.
             this.draw()
-            this.position.x += this.velocity.x
-            this.position.y += this.velocity.y
+            this.position.x += velocity.x
+            this.position.y += velocity.y
         } 
+    }
+}
+// Grid is bascially used to create a matrix in which we will be storing the enemies.
+class Grid{
+    constructor(){
+        this.position = {
+            x: 0,
+            y: 0
+        }
+
+        this.velocity = {
+            x: 3,
+            y: 0
+        }
+
+        this.invaders = []
+
+        const columns = Math.floor(Math.random() * 10 + 2)
+        const rows = Math.floor(Math.random() * 5 + 2)
+
+        this.width = columns * 60  //we have written 60 cuz there are 60 invaders in one column.
+        //Here the grid is being made in which element corresponds to an object
+        for(let x=0; x < columns; x++){
+            for(let y=0; y < rows; y++){
+                this.invaders.push(
+                    new Invader({
+                        position: {
+                            x: x * 55,
+                            y: y * 35
+                        }
+                    })
+                )
+            }
+        }
+    }
+
+    update(){
+        this.position.x += this.velocity.x
+        this.position.y += this.velocity.y
+
+        this.velocity.y = 0
+        //To bounce the invaders off the side when the touch the sides while moving from left to right and vice versa.
+        if(this.position.x + this.width >= canvas.width || this.position.x <= 0){
+            this.velocity.x = -this.velocity.x
+
+            //Pushing the grid down everytime the grid hit the boundary. Then aboe we are setting it to zero so that it
+            //won't be moving down constantly.
+            this.velocity.y = 30
+        }
     }
 }
 
 const player = new Player()
-const invader = new Invader()
-const projectiles = [
-    
-]
+//const invader = new Invader()
+const projectiles = []
+const grids = [new Grid()]
 const keys = {
     a: {
         pressed: false
@@ -165,7 +213,7 @@ function animate(){
     requestAnimationFrame(animate) //we are using this request animation frame because it will be running after every few milliseconds and if we dont use it then the image that we are extracting will not load. But in this case as it is reloading then the image gets load.
     c.fillStyle = 'black'
     c.fillRect(0,0,canvas.width,canvas.height)
-    invader.update()
+    //invader.update()
     player.update()
     projectiles.forEach( (projectile, index) => {  //Here we are using update method on every projectile to make a bullet of it.
         if(projectile.position.y + projectile.radius <= 0){  //Removing the projectile from the array when they are out of the canvas.
@@ -178,6 +226,14 @@ function animate(){
         }
         
         projectile.update()
+    })
+
+    //Here we are moving the grid and along with that we are moving each individual invader as well.
+    grids.forEach((grid) => {
+        grid.update()
+        grid.invaders.forEach(invader =>{
+            invader.update({velocity: grid.velocity})
+        })
     })
 
     if(keys.a.pressed && player.position.x >= 0){
