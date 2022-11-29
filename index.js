@@ -208,6 +208,7 @@ const keys = {
     }
 }
 
+let frames = 0
 
 function animate(){  
     requestAnimationFrame(animate) //we are using this request animation frame because it will be running after every few milliseconds and if we dont use it then the image that we are extracting will not load. But in this case as it is reloading then the image gets load.
@@ -231,8 +232,33 @@ function animate(){
     //Here we are moving the grid and along with that we are moving each individual invader as well.
     grids.forEach((grid) => {
         grid.update()
-        grid.invaders.forEach(invader =>{
+        grid.invaders.forEach((invader,i) =>{
             invader.update({velocity: grid.velocity})
+
+            // When the projectile hit the invader, 
+            projectiles.forEach((projectile,j) => {
+                if (projectile.position.y - projectile.radius <= invader.position.y + invader.height && 
+                    projectile.position.x + projectile.radius >= invader.position.x && 
+                    projectile.position.x - projectile.radius <= invader.position.x + invader.width && 
+                    projectile.position.y + projectile.radius >= invader.position.y){
+                    setTimeout(()=>{
+                        //Finding that particular invader which is currently being iterated in the forEach loop.
+                        const invaderFound = grid.invaders.find((invader2) =>{
+                            return invader2 === invader
+                        })
+                        //Finding that particular projectile which is currently being iterated in the forEach loop.
+                        const projectileFound = projectiles.find((projectiles2) =>{
+                            return projectiles2 === projectile
+                        })
+                        console.log(projectileFound)
+                        //Removing the the invader as well as the projectile by using the splice method.
+                        if(invaderFound && projectileFound){
+                            grid.invaders.splice(i, 1)
+                            projectiles.splice(j, 1)
+                        }
+                    }, 0)
+                }
+            })
         })
     })
 
@@ -248,6 +274,11 @@ function animate(){
         player.velocity.x = 0
         player.rotation = 0
     }
+
+    if((frames % (Math.random() * 500)) + 500 === 0){
+        grids.push(new Grid())
+    }
+    frames++
 }
 
 animate()
