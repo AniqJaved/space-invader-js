@@ -97,13 +97,14 @@ class Projectile {
 
 //Explosion when the bullet hits enemy
 class Particle {
-    constructor({position, velocity, radius, color}){
+    constructor({position, velocity, radius, color, fades}){
         this.position = position
         this.velocity = velocity
 
         this.radius = radius
         this.color = color
 
+        this.fades = fades
         this.opacity = 1
     }
 
@@ -124,7 +125,9 @@ class Particle {
         this.position.x += this.velocity.x
         this.position.y += this.velocity.y
 
-        this.opacity -= 0.01
+        if(this.fades){
+            this.opacity -= 0.01
+        }
     }
 }
 
@@ -295,7 +298,26 @@ const keys = {
 let frames = 0
 
 
-function createParticles({object, color}){
+//Creating stars movind downwards which gives illusion that spaceship is traversing through the galaxy.
+for (let i = 0; i < 100; i++){ // We are producing 15 particles for every explosion.
+    particles.push(new Particle({
+    position:{
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height
+    },
+    velocity:{
+        x: 0, //This will create particles which moves in all direction.
+        y: 1
+    },
+    radius: Math.random() * 3,
+    color: 'white'
+}))
+}
+
+
+
+
+function createParticles({object, color,  fades}){
     for (let i = 0; i < 15; i++){ // We are producing 15 particles for every explosion.
         particles.push(new Particle({
         position:{
@@ -307,7 +329,8 @@ function createParticles({object, color}){
             y: (Math.random() - 0.5) * 2
         },
         radius: Math.random() * 3,
-        color: color || 'yellow'
+        color: color || 'yellow',
+        fades
     }))
 }
 }
@@ -320,6 +343,13 @@ function animate(){
     player.update()
 
     particles.forEach((particle,i) =>{
+
+        //Changing the position of the background galaxy particles to starts once they touch the bottom of the screen.
+        if(particle.position.y - particle.radius >= canvas.height){
+            particle.position.x = Math.random() * canvas.width
+            particle.position.y = -particle.radius
+        }
+
 
         // Previously when the particles opacity reached 0 they move to negative and their opacity increased negatively, which respawns them. But now we are just splicing them out.
         if(particle.opacity <= 0){
@@ -392,7 +422,8 @@ function animate(){
 
                             //Showing explosions when bullets hit the enemy.
                             createParticles({
-                                object: invader
+                                object: invader,
+                                fades: true
                             })
 
                             grid.invaders.splice(i, 1)
