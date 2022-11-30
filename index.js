@@ -1,4 +1,5 @@
 const canvas = document.querySelector('canvas')
+const score = document.querySelector('#score')
 const c = canvas.getContext('2d')
 
 canvas.width = innerWidth
@@ -14,6 +15,7 @@ class Player {
         
         //tilting of spaceship when it moves
         this.rotation = 0
+        this.opacity = 1
 
         //getting image
 
@@ -42,6 +44,7 @@ class Player {
         //Functionalty for tilting the spaceship as it moves from left to right or right to left
         //So basically we are rotating the whole canvas as the spaceship moves left or right. c.save and c.restore takes a snapshot of the rotated canvas and then brings it back to original position instead of rotating it.
         c.save()
+        c.globalAlpha = this.opacity
         c.translate(  //Rotated canvas
             player.position.x + player.width / 2,
             player.position.y + player.height / 2 
@@ -241,8 +244,8 @@ class Grid{
 
         this.invaders = []
 
-        const columns = Math.floor(Math.random() * 10 + 2)
-        const rows = Math.floor(Math.random() * 5 + 2)
+        const columns = Math.floor(Math.random() * 20 + 2)
+        const rows = Math.floor(Math.random() * 10 + 2)
 
         this.width = columns * 60  //we have written 60 cuz there are 60 invaders in one column.
         //Here the grid is being made in which element corresponds to an object
@@ -282,6 +285,8 @@ const projectiles = []
 const grids = [new Grid()]
 const invaderProjectiles = []
 const particles = []
+let scoreNo = 0
+
 
 const keys = {
     a: {
@@ -296,7 +301,10 @@ const keys = {
 }
 
 let frames = 0
-
+let game = {
+    over: false,
+    active: false
+}
 
 //Creating stars movind downwards which gives illusion that spaceship is traversing through the galaxy.
 for (let i = 0; i < 100; i++){ // We are producing 15 particles for every explosion.
@@ -399,8 +407,17 @@ function animate(){
         grid.invaders.forEach((invader,i) =>{
             invader.update({velocity: grid.velocity})
 
+            
+            // if(player.position.y - player.radius <= invader.position.y + invader.height && 
+            //     player.position.x + player.radius >= invader.position.x && 
+            //     player.position.x - player.radius <= invader.position.x + invader.width && 
+            //     player.position.y + player.radius >= invader.position.y){
+            //         console.log("Touched")
+            //     }
+
             // When the projectile hit the enemy, 
             projectiles.forEach((projectile,j) => {
+                
                 if (projectile.position.y - projectile.radius <= invader.position.y + invader.height && 
                     projectile.position.x + projectile.radius >= invader.position.x && 
                     projectile.position.x - projectile.radius <= invader.position.x + invader.width && 
@@ -419,7 +436,8 @@ function animate(){
                         //Removing the the invader as well as the projectile by using the splice method.
                         if(invaderFound && projectileFound){
 
-
+                            scoreNo += 100
+                            score.innerHTML = scoreNo
                             //Showing explosions when bullets hit the enemy.
                             createParticles({
                                 object: invader,
@@ -457,6 +475,9 @@ function animate(){
 animate()
 
 addEventListener('keydown', ({key}) => { //{key} it is object destructuring
+    
+    if(game.over) return
+    
     switch (key){
         case 'a':
             // console.log("left")
