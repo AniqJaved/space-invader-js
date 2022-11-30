@@ -94,6 +94,44 @@ class Projectile {
 }
 
 
+
+//Explosion when the bullet hits enemy
+class Particle {
+    constructor({position, velocity, radius, color}){
+        this.position = position
+        this.velocity = velocity
+
+        this.radius = radius
+        this.color = color
+
+        this.opacity = 1
+    }
+
+    draw(){
+        // This is begin to close is used to make a circle
+        c.save()
+        c.globalAlpha = this.opacity
+        c.beginPath()
+        c.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2)  // So this function will bascially create an arc in which second last value is the start of angle and last value is the angle where the arc ends.
+        c.fillStyle = this.color  // fillStyle will put the color of the circle
+        c.fill()
+        c.closePath()
+        c.restore()
+    }
+
+    update(){
+        this.draw()
+        this.position.x += this.velocity.x
+        this.position.y += this.velocity.y
+
+        this.opacity -= 0.01
+    }
+}
+
+
+
+
+
 class Invader { 
     constructor({ position }){ 
         
@@ -141,7 +179,50 @@ class Invader {
             this.position.y += velocity.y
         } 
     }
+
+    shoot(invaderProjectiles){
+        invaderProjectiles.push(
+            new invaderProjectile({
+                position: {
+                    x: this.position.x + this.width / 2,
+                    y: this.position.y + this.height
+                },
+                velocity: {
+                    x: 0,
+                    y: 5
+                }
+            })
+        )
+    }
 }
+
+//The bullets are the invaderProjectile that enemy will be shooting to the spaceship.
+class invaderProjectile {
+    constructor({position, velocity}){
+        this.position = position
+        this.velocity = velocity
+
+        this.width = 3
+        this.height = 10
+    }
+
+    draw(){
+        // This is fillRect to close is used to make a rectangle
+        c.fillStyle = 'white'
+        c.fillRect(this.position.x,  this.position.y, this.width, this.height)
+    }
+
+    update(){
+        this.draw()
+        this.position.x += this.velocity.x
+        this.position.y += this.velocity.y
+    }
+
+    
+    
+}
+
+
 // Grid is bascially used to create a matrix in which we will be storing the enemies.
 class Grid{
     constructor(){
@@ -196,6 +277,9 @@ const player = new Player()
 //const invader = new Invader()
 const projectiles = []
 const grids = [new Grid()]
+const invaderProjectiles = []
+const particles = []
+
 const keys = {
     a: {
         pressed: false
@@ -210,12 +294,51 @@ const keys = {
 
 let frames = 0
 
+
+function createParticles({object, color}){
+    for (let i = 0; i < 15; i++){ // We are producing 15 particles for every explosion.
+        particles.push(new Particle({
+        position:{
+            x: object.position.x + object.width / 2,
+            y: object.position.y + object.height / 2
+        },
+        velocity:{
+            x: (Math.random() - 0.5) * 2, //This will create particles which moves in all direction.
+            y: (Math.random() - 0.5) * 2
+        },
+        radius: Math.random() * 3,
+        color: color || 'yellow'
+    }))
+}
+}
+
 function animate(){  
     requestAnimationFrame(animate) //we are using this request animation frame because it will be running after every few milliseconds and if we dont use it then the image that we are extracting will not load. But in this case as it is reloading then the image gets load.
     c.fillStyle = 'black'
     c.fillRect(0,0,canvas.width,canvas.height)
     //invader.update()
     player.update()
+
+    particles.forEach((particle,i) =>{
+
+        // Previously when the particles opacity reached 0 they move to negative and their opacity increased negatively, which respawns them. But now we are just splicing them out.
+        if(particle.opacity <= 0){
+
+            setTimeout(()=>{
+                particles.splice(i,1)
+            }, 0)
+        }
+        else{
+            particle.update()
+        }
+    })
+
+    //Making projectiles of enemies.
+    invaderProjectiles.forEach(invaderProjectile =>{
+        invaderProjectile.update()
+    })
+
+
     projectiles.forEach( (projectile, index) => {  //Here we are using update method on every projectile to make a bullet of it.
         if(projectile.position.y + projectile.radius <= 0){  //Removing the projectile from the array when they are out of the canvas.
             setTimeout(()=>{           //Sometimes the update and the splice would happen it same time which will be creating bug. TO solve it we are using setTimeOut in order to say that the splicing and updating should have a one frame difference.
@@ -226,22 +349,34 @@ function animate(){
             projectile.update()
         }
         
-        projectile.update()
+        //projectile.update()
     })
-
+    console.log(grids)
     //Here we are moving the grid and along with that we are moving each individual invader as well.
     grids.forEach((grid) => {
         grid.update()
+
+        
+        // spawn enemy projectiles after some specific amount of frames.
+        // if(frames % 100 === 0 && grid.invaders.length > 0){
+        //     grid.invaders[Math.floor(Math.random() * grid.invaders.length)].shoot(
+        //         invaderProjectiles
+        //     )
+        // }
+
+        console.log(invaderProjectiles)
+
         grid.invaders.forEach((invader,i) =>{
             invader.update({velocity: grid.velocity})
 
-            // When the projectile hit the invader, 
+            // When the projectile hit the enemy, 
             projectiles.forEach((projectile,j) => {
                 if (projectile.position.y - projectile.radius <= invader.position.y + invader.height && 
                     projectile.position.x + projectile.radius >= invader.position.x && 
                     projectile.position.x - projectile.radius <= invader.position.x + invader.width && 
                     projectile.position.y + projectile.radius >= invader.position.y){
-                    setTimeout(()=>{
+
+                    setTimeout(()=>{ 
                         //Finding that particular invader which is currently being iterated in the forEach loop.
                         const invaderFound = grid.invaders.find((invader2) =>{
                             return invader2 === invader
@@ -250,9 +385,16 @@ function animate(){
                         const projectileFound = projectiles.find((projectiles2) =>{
                             return projectiles2 === projectile
                         })
-                        console.log(projectileFound)
+                        
                         //Removing the the invader as well as the projectile by using the splice method.
                         if(invaderFound && projectileFound){
+
+
+                            //Showing explosions when bullets hit the enemy.
+                            createParticles({
+                                object: invader
+                            })
+
                             grid.invaders.splice(i, 1)
                             projectiles.splice(j, 1)
                         }
