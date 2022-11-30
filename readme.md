@@ -18,7 +18,10 @@ Discord : AniqJaved#4687 , KingD#0612
 This is a space invader themed game where you have to kill as much invaders as possible within a time limit. Your score will be based on the number of invaders shot down by your bullets.
 
 ### Preview
-<img src="https://gifyu.com/image/ShZvy" alt="spaceoffgif.gif" width="1000" />
+
+
+![](spaceoffgif.gif)
+
 
 
 
